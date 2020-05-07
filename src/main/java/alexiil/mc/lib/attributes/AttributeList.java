@@ -13,8 +13,8 @@ import java.util.List;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.minecraft.util.BooleanBiFunction;
-import net.minecraft.util.DefaultedList;
+import net.minecraft.util.collection.DefaultedList;
+import net.minecraft.util.function.BooleanBiFunction;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Direction.AxisDirection;
@@ -228,7 +228,7 @@ public class AttributeList<T> extends AbstractAttributeList<T> {
         VoxelShape combined = VoxelShapes.empty();
         for (Box box : shape.getBoundingBoxes()) {
             // Offset it a tiny bit to allow an obstacle to return attributes (as otherwise it would block itself)
-            box = box.offset(new Vec3d(direction.getVector()).multiply(1 / 32.0));
+            box = box.offset(Vec3d.method_24954(direction.getVector()).multiply(1 / 32.0));
             double minX = box.x1;
             double minY = box.y1;
             double minZ = box.z1;

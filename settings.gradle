@@ -7,6 +7,10 @@ pluginManagement {
             url = 'https://maven.fabricmc.net/'
         }
         gradlePluginPortal()
+        maven {
+            name = "BuildCraft"
+            url = "https://mod-buildcraft.com/maven"
+        }
     }
 }
 rootProject.name = "LibBlockAttributes"

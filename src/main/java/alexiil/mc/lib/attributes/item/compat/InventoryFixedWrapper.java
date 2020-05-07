@@ -21,7 +21,7 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 /** An {@link Inventory} that wraps an {@link FixedItemInv}.
  * <p>
  * One of the {@link Inventory} methods must be overridden by subclasses however:
- * {@link Inventory#canPlayerUseInv(PlayerEntity)}. */
+ * {@link Inventory#canPlayerUse(PlayerEntity)}. */
 public abstract class InventoryFixedWrapper implements Inventory {
 
     protected final FixedItemInv inv;
@@ -40,12 +40,12 @@ public abstract class InventoryFixedWrapper implements Inventory {
     }
 
     @Override
-    public int getInvSize() {
+    public int size() {
         return inv.getSlotCount();
     }
 
     @Override
-    public boolean isInvEmpty() {
+    public boolean isEmpty() {
         for (int s = 0; s < inv.getSlotCount(); s++) {
             if (!inv.getInvStack(s).isEmpty()) {
                 return false;
@@ -55,7 +55,7 @@ public abstract class InventoryFixedWrapper implements Inventory {
     }
 
     @Override
-    public ItemStack getInvStack(int slot) {
+    public ItemStack getStack(int slot) {
         SlotStatus prev = slotStatus.remove(slot);
         if (prev != null) {
             prev.process(this, slot);
@@ -67,22 +67,22 @@ public abstract class InventoryFixedWrapper implements Inventory {
     }
 
     @Override
-    public ItemStack takeInvStack(int slot, int amount) {
-        ItemStack stack = getInvStack(slot);
+    public ItemStack removeStack(int slot, int amount) {
+        ItemStack stack = getStack(slot);
         ItemStack split = stack.split(amount);
-        setInvStack(slot, stack);
+        setStack(slot, stack);
         return split;
     }
 
     @Override
-    public ItemStack removeInvStack(int slot) {
-        ItemStack stack = getInvStack(slot);
-        setInvStack(slot, ItemStack.EMPTY);
+    public ItemStack removeStack(int slot) {
+        ItemStack stack = getStack(slot);
+        setStack(slot, ItemStack.EMPTY);
         return stack;
     }
 
     @Override
-    public void setInvStack(int slot, ItemStack to) {
+    public void setStack(int slot, ItemStack to) {
         SlotStatus status = slotStatus.remove(slot);
         if (status != null) {
             status.validate(this, slot);
@@ -113,7 +113,7 @@ public abstract class InventoryFixedWrapper implements Inventory {
     }
 
     @Override
-    public boolean isValidInvStack(int slot, ItemStack stack) {
+    public boolean isValid(int slot, ItemStack stack) {
         return inv.isItemValidForSlot(slot, stack);
     }
 
@@ -132,7 +132,7 @@ public abstract class InventoryFixedWrapper implements Inventory {
         /** A copy of the itemstack that was originally seen in the backing {@link FixedItemInv}. */
         final ItemStack originalCopy;
 
-        /** The itemstack that was returned from {@link InventoryFixedWrapper#getInvStack(int)}. */
+        /** The itemstack that was returned from {@link InventoryFixedWrapper#getStack(int)}. */
         final ItemStack returned;
 
         public SlotStatus(ItemStack current) {
@@ -146,7 +146,7 @@ public abstract class InventoryFixedWrapper implements Inventory {
 
         void validate(InventoryFixedWrapper inv, int slot) {
             ItemStack current = inv.inv.getInvStack(slot);
-            if (!ItemStack.areEqualIgnoreDamage(originalCopy, current) && !ItemStack.areEqualIgnoreDamage(originalCopy, returned)) {
+            if (!ItemStack.areItemsEqualIgnoreDamage(originalCopy, current) && !ItemStack.areItemsEqualIgnoreDamage(originalCopy, returned)) {
                 throw new IllegalStateException("The inventory has been modifed in two places at once! (\n\tcurrent = "
                     + ItemInvModificationTracker.stackToFullString(current) + ", \n\toriginal = "
                     + ItemInvModificationTracker.stackToFullString(originalCopy) + ", \n\tnew = "
@@ -156,7 +156,7 @@ public abstract class InventoryFixedWrapper implements Inventory {
 
         void process(InventoryFixedWrapper inv, int slot) {
             validate(inv, slot);
-            if (ItemStack.areEqualIgnoreDamage(returned, originalCopy)) {
+            if (ItemStack.areItemsEqualIgnoreDamage(returned, originalCopy)) {
                 // Nothing changed
                 return;
             }

@@ -26,7 +26,7 @@ import net.minecraft.inventory.Inventory;
 import net.minecraft.inventory.SidedInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.util.DefaultedList;
+import net.minecraft.util.collection.DefaultedList;
 import net.minecraft.util.math.Direction;
 
 import alexiil.mc.lib.attributes.Attribute;
@@ -141,7 +141,7 @@ public final class ItemAttributes {
                 InventoryProvider provider = (InventoryProvider) block;
                 SidedInventory inventory = provider.getInventory(state, world, pos);
                 if (inventory != null) {
-                    if (inventory.getInvSize() > 0) {
+                    if (inventory.size() > 0) {
                         final FixedItemInv wrapper;
                         if (direction != null) {
                             wrapper = FixedSidedInventoryVanillaWrapper.create(inventory, blockSide);

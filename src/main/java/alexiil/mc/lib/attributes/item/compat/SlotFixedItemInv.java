@@ -7,12 +7,12 @@
  */
 package alexiil.mc.lib.attributes.item.compat;
 
-import net.minecraft.container.Container;
-import net.minecraft.container.Slot;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 
 import alexiil.mc.lib.attributes.item.FixedItemInv;
+import net.minecraft.screen.ScreenHandler;
+import net.minecraft.screen.slot.Slot;
 
 public class SlotFixedItemInv extends Slot {
 
@@ -22,10 +22,10 @@ public class SlotFixedItemInv extends Slot {
 
     private ItemStack forcedClientStackOverride = ItemStack.EMPTY;
 
-    public SlotFixedItemInv(Container container, FixedItemInv inv, int slotIndex, int x, int y) {
+    public SlotFixedItemInv(ScreenHandler container, FixedItemInv inv, int slotIndex, int x, int y) {
         super(new InventoryFixedWrapper(inv) {
             @Override
-            public boolean canPlayerUseInv(PlayerEntity player) {
+            public boolean canPlayerUse(PlayerEntity player) {
                 return container.canUse(player);
             }
         }, slotIndex, x, y);
@@ -64,7 +64,7 @@ public class SlotFixedItemInv extends Slot {
     public ItemStack takeStack(int amount) {
         ItemStack taken = super.takeStack(amount);
         if (isClient()) {
-            forcedClientStackOverride = wrapper.getInvStack(slotIndex);
+            forcedClientStackOverride = wrapper.getStack(slotIndex);
         }
         return taken;
     }

@@ -80,7 +80,7 @@ public class BucketItemMixin extends Item implements FluidProviderItem, IBucketI
             if (amount.isGreaterThan(with.obj.getAmount_F())) {
                 continue;
             }
-            if (!ItemStack.areEqualIgnoreDamage(stackRef.obj, stack.obj)) {
+            if (!ItemStack.areItemsEqualIgnoreDamage(stackRef.obj, stack.obj)) {
                 continue;
             }
             with.obj = with.obj.copy();

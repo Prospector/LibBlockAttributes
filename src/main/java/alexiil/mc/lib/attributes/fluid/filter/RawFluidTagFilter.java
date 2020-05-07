@@ -15,9 +15,9 @@ import alexiil.mc.lib.attributes.fluid.volume.FluidKey;
 /** A {@link FluidFilter} that operates on a {@link Tag} of vanilla minecraft's {@link Fluid}'s. */
 public final class RawFluidTagFilter implements ReadableFluidFilter {
 
-    public final Tag<Fluid> tag;
+    public final Tag.Identified<Fluid> tag;
 
-    public RawFluidTagFilter(Tag<Fluid> tag) {
+    public RawFluidTagFilter(Tag.Identified<Fluid> tag) {
         this.tag = tag;
     }
 
@@ -27,6 +27,6 @@ public final class RawFluidTagFilter implements ReadableFluidFilter {
         if (raw == null) {
             return false;
         }
-        return raw.matches(tag);
+        return raw.isIn(tag);
     }
 }

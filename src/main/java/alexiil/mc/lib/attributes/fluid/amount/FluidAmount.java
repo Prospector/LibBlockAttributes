@@ -18,7 +18,7 @@ import com.google.common.math.LongMath;
 import io.netty.buffer.ByteBuf;
 
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.util.PacketByteBuf;
+import net.minecraft.network.PacketByteBuf;
 
 /** A simple mixed fraction. The value represented by this can be calculated with this: "{@link #whole} +
  * ({@link #numerator} / {@link #denominator})". Negative values are indicated with both {@link #whole} and

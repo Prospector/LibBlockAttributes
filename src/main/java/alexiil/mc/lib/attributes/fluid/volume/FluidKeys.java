@@ -30,6 +30,7 @@ import net.minecraft.text.Text;
 import net.minecraft.text.TranslatableText;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.Heightmap.Type;
 import net.minecraft.world.WorldView;
@@ -236,7 +237,7 @@ public final class FluidKeys {
         private final WorldBorder border;
 
         private VoidWorldView(boolean nether) {
-            Biome biome = nether ? Biomes.NETHER : Biomes.PLAINS;
+            Biome biome = nether ? Biomes.NETHER_WASTES : Biomes.PLAINS;
             biomeAccess = new BiomeAccess((x, y, z) -> biome, 42, (a, b, c, d, e) -> biome);
             dim = nether ? new TheNetherDimension(null, DimensionType.THE_NETHER)
                 : new OverworldDimension(null, DimensionType.OVERWORLD);
@@ -246,6 +247,11 @@ public final class FluidKeys {
         @Override
         public String toString() {
             return "LBA_VoidWorldView_" + name();
+        }
+
+        @Override
+        public float getBrightness(Direction direction, boolean shaded) {
+            return 0;
         }
 
         @Override
@@ -317,5 +323,6 @@ public final class FluidKeys {
         public Dimension getDimension() {
             return dim;
         }
+
     }
 }

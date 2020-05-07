@@ -60,7 +60,7 @@ public enum ItemStackCollections {
             if (a == null || b == null) {
                 return a == b;
             }
-            return ItemStack.areEqualIgnoreDamage(a, b);
+            return ItemStack.areItemsEqualIgnoreDamage(a, b);
         }
     };
 

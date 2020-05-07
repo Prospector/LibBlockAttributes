@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '0.2.7-alex.8'
+    id 'fabric-loom' version '0.2.7-SNAPSHOT'
     id 'net.minecrell.licenser' version '0.4.1'
 }
 
@@ -14,7 +14,7 @@ repositories {
 }
 
 archivesBaseName = "libblockatttributes"
-version = "0.6.6"
+version = "0.7.1-prospector"
 
 license {
     header = project.file('misc/LICENSE_HEADER.txt');
@@ -25,18 +25,18 @@ minecraft {
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:1.15.2"
-    mappings "net.fabricmc:yarn:1.15.2+build.7:v2"
-    modCompile "net.fabricmc:fabric-loader:0.7.6+build.179"
+    minecraft "com.mojang:minecraft:20w16a"
+    mappings "net.fabricmc:yarn:20w16a+build.3:v2"
+    modCompile "net.fabricmc:fabric-loader:0.8.2+build.194"
 
     //Fabric api
-    modCompile "net.fabricmc.fabric-api:fabric-api:0.4.29+build.290-1.15"
+    modCompile "net.fabricmc.fabric-api:fabric-api:0.5.11+build.322-1.16"
 
     // Silk API
     modImplementation "io.github.prospector.silk:SilkAPI:${silk_version}"
 
     // RebornCore
-    modImplementation("RebornCore:RebornCore-1.15:${reborncore_version}") { transitive = false }
+    modImplementation("RebornCore:RebornCore-1.16:${reborncore_version}") { transitive = false }
 
     // Misc
     compile "com.google.code.findbugs:jsr305:3.0.1"

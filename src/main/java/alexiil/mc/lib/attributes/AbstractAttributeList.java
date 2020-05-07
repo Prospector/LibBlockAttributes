@@ -10,7 +10,7 @@ package alexiil.mc.lib.attributes;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-import net.minecraft.util.DefaultedList;
+import net.minecraft.util.collection.DefaultedList;
 
 public abstract class AbstractAttributeList<T> {
 
