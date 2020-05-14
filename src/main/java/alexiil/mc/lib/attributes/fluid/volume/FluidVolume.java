@@ -24,8 +24,8 @@ import net.fabricmc.api.Environment;
 import net.minecraft.client.item.TooltipContext;
 import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.client.util.math.MatrixStack;
-import net.minecraft.fluid.BaseFluid;
 import net.minecraft.fluid.EmptyFluid;
+import net.minecraft.fluid.FlowableFluid;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.potion.Potion;
@@ -77,7 +77,7 @@ public abstract class FluidVolume {
         if (rawFluid instanceof EmptyFluid && key != FluidKeys.EMPTY) {
             throw new IllegalArgumentException("Different empty fluid!");
         }
-        if (rawFluid instanceof BaseFluid && rawFluid != ((BaseFluid) rawFluid).getStill()) {
+        if (rawFluid instanceof FlowableFluid && rawFluid != ((FlowableFluid) rawFluid).getStill()) {
             throw new IllegalArgumentException("Only the still version of fluids are allowed!");
         }
         this.fluidKey = key;

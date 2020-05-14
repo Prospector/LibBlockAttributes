@@ -7,19 +7,15 @@
  */
 package alexiil.mc.lib.attributes.fluid.volume;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.IdentityHashMap;
-import java.util.Map;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
+import alexiil.mc.lib.attributes.fluid.amount.FluidAmount;
+import alexiil.mc.lib.attributes.fluid.mixin.impl.BaseFluidAccessor;
+import alexiil.mc.lib.attributes.fluid.volume.FluidEntry.FluidFloatingEntry;
+import alexiil.mc.lib.attributes.fluid.volume.FluidKey.FluidKeyBuilder;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.fluid.BaseFluid;
+import net.minecraft.fluid.FlowableFluid;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.fluid.Fluids;
@@ -46,20 +42,21 @@ import net.minecraft.world.dimension.DimensionType;
 import net.minecraft.world.dimension.OverworldDimension;
 import net.minecraft.world.dimension.TheNetherDimension;
 
-import alexiil.mc.lib.attributes.fluid.amount.FluidAmount;
-import alexiil.mc.lib.attributes.fluid.mixin.impl.BaseFluidAccessor;
-import alexiil.mc.lib.attributes.fluid.volume.FluidEntry.FluidFloatingEntry;
-import alexiil.mc.lib.attributes.fluid.volume.FluidKey.FluidKeyBuilder;
+import javax.annotation.Nullable;
+import java.util.*;
 
-/** The central registry for storing {@link FluidKey} instances, and mapping {@link Fluid} and {@link Potion} instances
- * to them. */
+/**
+ * The central registry for storing {@link FluidKey} instances, and mapping {@link Fluid} and {@link Potion} instances
+ * to them.
+ */
 public final class FluidKeys {
-    private FluidKeys() {}
+    private FluidKeys() {
+    }
 
     public static final Identifier MISSING_SPRITE = new Identifier("minecraft", "missingno");
 
     private static final String ERROR_CAST_MIXIN_JUNIT_SUFFIX
-        = "cannot be cast to alexiil.mc.lib.attributes.fluid.mixin.impl.BaseFluidAccessor";
+            = "cannot be cast to alexiil.mc.lib.attributes.fluid.mixin.impl.BaseFluidAccessor";
 
     public static final FluidKey EMPTY;
     public static final FluidKey LAVA;
@@ -79,14 +76,14 @@ public final class FluidKeys {
      * server) so there's probably no point.
      *
      * (In addition the only operations that is performed is HashMap.get
-     *  anyway, so we would probably only loose performance).  
+     *  anyway, so we would probably only loose performance).
      */
 
     static {
         // Empty doesn't have a proper sprite or text component because it doesn't ever make sense to use it.
         EMPTY = new SimpleFluidKey(
-            new FluidKeyBuilder(Fluids.EMPTY)//
-                .setName(new LiteralText("!EMPTY FLUID!"))
+                new FluidKeyBuilder(Fluids.EMPTY)//
+                        .setName(new LiteralText("!EMPTY FLUID!"))
         );
         LAVA = createImplicitFluid(Fluids.LAVA);
         WATER = WaterFluidKey.INSTANCE;
@@ -100,9 +97,9 @@ public final class FluidKeys {
 
     public static synchronized void put(Fluid fluid, FluidKey fluidKey) {
         FLUIDS.put(fluid, fluidKey);
-        if (fluid instanceof BaseFluid) {
-            FLUIDS.put(((BaseFluid) fluid).getStill(), fluidKey);
-            FLUIDS.put(((BaseFluid) fluid).getFlowing(), fluidKey);
+        if (fluid instanceof FlowableFluid) {
+            FLUIDS.put(((FlowableFluid) fluid).getStill(), fluidKey);
+            FLUIDS.put(((FlowableFluid) fluid).getFlowing(), fluidKey);
         }
     }
 
@@ -124,23 +121,27 @@ public final class FluidKeys {
         FLOATING.put(entry, fluidKey);
     }
 
-    /** Removes a fluid entry from this map.
-     * 
-     * @deprecated Because I think fluids are meant to be all statically created? */
+    /**
+     * Removes a fluid entry from this map.
+     *
+     * @deprecated Because I think fluids are meant to be all statically created?
+     */
     @Deprecated
     public static synchronized void remove(Fluid fluid) {
         FLUIDS.remove(fluid);
     }
 
-    /** @return Null if the passed fluid is null, or a non-null {@link FluidKey}. */
+    /**
+     * @return Null if the passed fluid is null, or a non-null {@link FluidKey}.
+     */
     public static synchronized FluidKey get(Fluid fluid) {
         if (fluid == null) {
             return null;
         }
         FluidKey fluidKey = FLUIDS.get(fluid);
         if (fluidKey == null) {
-            if (fluid instanceof BaseFluid) {
-                BaseFluid base = (BaseFluid) fluid;
+            if (fluid instanceof FlowableFluid) {
+                FlowableFluid base = (FlowableFluid) fluid;
                 fluid = base.getStill();
                 if (fluid == null) {
                     throw new IllegalStateException("fluid.getStill() returned a null fluid! (from " + fluid + ")");
@@ -156,8 +157,8 @@ public final class FluidKeys {
         Block block = fluid.getDefaultState().getBlockState().getBlock();
         Text name = new TranslatableText(block.getTranslationKey());
         FluidKeyBuilder builder = new FluidKeyBuilder(fluid).setName(name);
-        if (fluid instanceof BaseFluid) {
-            BaseFluid bf = (BaseFluid) fluid;
+        if (fluid instanceof FlowableFluid) {
+            FlowableFluid bf = (FlowableFluid) fluid;
             try {
                 builder.setViscosity(FluidAmount.of(bf.getTickRate(VoidWorldView.OVERWORLD), 5));
                 builder.setNetherViscosity(FluidAmount.of(bf.getTickRate(VoidWorldView.NETHER), 5));
@@ -215,17 +216,23 @@ public final class FluidKeys {
         throw new IllegalArgumentException("Unknown FluidEntry " + entry.getClass());
     }
 
-    /** @return A copy of all the {@link FluidRegistryEntry}s registered. */
+    /**
+     * @return A copy of all the {@link FluidRegistryEntry}s registered.
+     */
     public static synchronized Set<FluidRegistryEntry<?>> getRegistryFluidIds() {
         return new HashSet<>(OTHERS.keySet());
     }
 
-    /** @return A copy of all the {@link FluidFloatingEntry}s registered. */
+    /**
+     * @return A copy of all the {@link FluidFloatingEntry}s registered.
+     */
     public static synchronized Set<FluidFloatingEntry> getFloatingFluidIds() {
         return new HashSet<>(FLOATING.keySet());
     }
 
-    /** Private helper for determining the viscosity and cohesion of fluids. */
+    /**
+     * Private helper for determining the viscosity and cohesion of fluids.
+     */
     private enum VoidWorldView implements WorldView {
         OVERWORLD(false),
         NETHER(true);
@@ -240,7 +247,7 @@ public final class FluidKeys {
             Biome biome = nether ? Biomes.NETHER_WASTES : Biomes.PLAINS;
             biomeAccess = new BiomeAccess((x, y, z) -> biome, 42, (a, b, c, d, e) -> biome);
             dim = nether ? new TheNetherDimension(null, DimensionType.THE_NETHER)
-                : new OverworldDimension(null, DimensionType.OVERWORLD);
+                    : new OverworldDimension(null, DimensionType.OVERWORLD);
             border = dim.createWorldBorder();
         }
 
@@ -322,6 +329,11 @@ public final class FluidKeys {
         @Override
         public Dimension getDimension() {
             return dim;
+        }
+
+        @Override
+        public DimensionType method_27983() {
+            return dim.getType();
         }
 
     }

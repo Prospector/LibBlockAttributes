@@ -228,7 +228,7 @@ public class AttributeList<T> extends AbstractAttributeList<T> {
         VoxelShape combined = VoxelShapes.empty();
         for (Box box : shape.getBoundingBoxes()) {
             // Offset it a tiny bit to allow an obstacle to return attributes (as otherwise it would block itself)
-            box = box.offset(Vec3d.method_24954(direction.getVector()).multiply(1 / 32.0));
+            box = box.offset(Vec3d.of(direction.getVector()).multiply(1 / 32.0));
             double minX = box.x1;
             double minY = box.y1;
             double minZ = box.z1;

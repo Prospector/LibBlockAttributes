@@ -14,7 +14,7 @@ repositories {
 }
 
 archivesBaseName = "libblockatttributes"
-version = "0.7.1-prospector"
+version = "0.7.2-prospector"
 
 license {
     header = project.file('misc/LICENSE_HEADER.txt');
@@ -25,12 +25,12 @@ minecraft {
 }
 
 dependencies {
-    minecraft "com.mojang:minecraft:20w16a"
-    mappings "net.fabricmc:yarn:20w16a+build.3:v2"
-    modCompile "net.fabricmc:fabric-loader:0.8.2+build.194"
+    minecraft "com.mojang:minecraft:20w20b"
+    mappings "net.fabricmc:yarn:20w20b+build.1:v2"
+    modCompile "net.fabricmc:fabric-loader:0.8.3+build.196"
 
     //Fabric api
-    modCompile "net.fabricmc.fabric-api:fabric-api:0.5.11+build.322-1.16"
+    modCompile "net.fabricmc.fabric-api:fabric-api:0.10.9+build.346-1.16"
 
     // Silk API
     modImplementation "io.github.prospector.silk:SilkAPI:${silk_version}"

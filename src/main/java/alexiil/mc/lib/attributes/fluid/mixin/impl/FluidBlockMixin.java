@@ -7,26 +7,24 @@
  */
 package alexiil.mc.lib.attributes.fluid.mixin.impl;
 
-import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.Shadow;
-
+import alexiil.mc.lib.attributes.fluid.world.IFluidBlockMixin;
 import net.minecraft.block.Block;
 import net.minecraft.block.FluidBlock;
-import net.minecraft.fluid.BaseFluid;
-
-import alexiil.mc.lib.attributes.fluid.world.IFluidBlockMixin;
+import net.minecraft.fluid.FlowableFluid;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 
 @Mixin(FluidBlock.class)
 public class FluidBlockMixin extends Block implements IFluidBlockMixin {
     @Shadow
-    protected BaseFluid fluid;
+    protected FlowableFluid fluid;
 
     public FluidBlockMixin(Settings block$Settings_1) {
         super(block$Settings_1);
     }
 
     @Override
-    public BaseFluid __fluid() {
+    public FlowableFluid __fluid() {
         return fluid;
     }
 }

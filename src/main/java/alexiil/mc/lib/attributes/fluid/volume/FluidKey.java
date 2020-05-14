@@ -7,18 +7,15 @@
  */
 package alexiil.mc.lib.attributes.fluid.volume;
 
-import java.lang.reflect.Method;
-import java.util.Arrays;
-import java.util.Set;
-
-import javax.annotation.Nullable;
-
+import alexiil.mc.lib.attributes.fluid.FluidVolumeUtil;
+import alexiil.mc.lib.attributes.fluid.amount.FluidAmount;
+import alexiil.mc.lib.attributes.fluid.render.DefaultFluidVolumeRenderer;
+import alexiil.mc.lib.attributes.fluid.volume.FluidEntry.FluidFloatingEntry;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
-
-import net.minecraft.fluid.BaseFluid;
 import net.minecraft.fluid.EmptyFluid;
+import net.minecraft.fluid.FlowableFluid;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.Fluids;
 import net.minecraft.nbt.CompoundTag;
@@ -30,106 +27,138 @@ import net.minecraft.util.registry.MutableRegistry;
 import net.minecraft.util.registry.Registry;
 import net.minecraft.world.WorldView;
 
-import alexiil.mc.lib.attributes.fluid.FluidVolumeUtil;
-import alexiil.mc.lib.attributes.fluid.amount.FluidAmount;
-import alexiil.mc.lib.attributes.fluid.render.DefaultFluidVolumeRenderer;
-import alexiil.mc.lib.attributes.fluid.volume.FluidEntry.FluidFloatingEntry;
+import javax.annotation.Nullable;
+import java.lang.reflect.Method;
+import java.util.Arrays;
+import java.util.Set;
 
-/** A factory for {@link FluidVolume} instances. Identifying whether two {@link FluidKey}'s are equal is always done via
+/**
+ * A factory for {@link FluidVolume} instances. Identifying whether two {@link FluidKey}'s are equal is always done via
  * the object identity comparison (== rather than {@link #equals(Object)} - although {@link FluidKey} final-overrides
- * equals and hashCode to perform identity comparison anyway). */
+ * equals and hashCode to perform identity comparison anyway).
+ */
 public abstract class FluidKey {
 
-    /** The default {@link #viscosity} that gases use: 1/24. */
+    /**
+     * The default {@link #viscosity} that gases use: 1/24.
+     */
     public static final FluidAmount DEFAULT_GAS_VISCOSITY = FluidAmount.of(1, 24);
 
-    /** The default {@link #cohesion} that gases use: 1/24 */
+    /**
+     * The default {@link #cohesion} that gases use: 1/24
+     */
     public static final FluidAmount DEFAULT_GAS_COHESION = FluidAmount.of(1, 24);
 
-    /** The default {@link #density} (and {@link #thermalCapacity}) that gases use: 1/160. */
+    /**
+     * The default {@link #density} (and {@link #thermalCapacity}) that gases use: 1/160.
+     */
     public static final FluidAmount DEFAULT_GAS_DENSITY = FluidAmount.of(1, 160);
 
     private static final Identifier MISSING_SPRITE = new Identifier("minecraft", "missingno");
 
     /* package-private */ final FluidEntry entry;
 
-    /** The singular (main) unit to use when displaying amounts, capacities, and flow rates to the player.
-     * 
-     * @deprecated Because most of the time you should use {@link #unitSet} rather than this. */
+    /**
+     * The singular (main) unit to use when displaying amounts, capacities, and flow rates to the player.
+     *
+     * @deprecated Because most of the time you should use {@link #unitSet} rather than this.
+     */
     @Deprecated
     public final FluidUnit unit;
 
-    /** All units to use when displaying amounts, capacities, and flow rates to the player. */
+    /**
+     * All units to use when displaying amounts, capacities, and flow rates to the player.
+     */
     public final FluidUnitSet unitSet;
 
-    /** Fallback for {@link DefaultFluidVolumeRenderer} to use if it can't find one itself. */
+    /**
+     * Fallback for {@link DefaultFluidVolumeRenderer} to use if it can't find one itself.
+     */
     public final Identifier spriteId, flowingSpriteId;
 
-    /** The colour to use when rendering this {@link FluidKey}'s specifically.
+    /**
+     * The colour to use when rendering this {@link FluidKey}'s specifically.
      * <p>
-     * Note that this might differ from the one returned by {@link FluidVolume#getRenderColor()}! */
+     * Note that this might differ from the one returned by {@link FluidVolume#getRenderColor()}!
+     */
     public final int renderColor;
 
-    /** The name to use when displaying tooltips for this {@link FluidKey} specifically.
+    /**
+     * The name to use when displaying tooltips for this {@link FluidKey} specifically.
      * <p>
-     * Note that this might differ from the one returned by {@link FluidVolume#getName()}! */
+     * Note that this might differ from the one returned by {@link FluidVolume#getName()}!
+     */
     public final Text name;
 
-    /** True if this represents a gas, false if this represents a liquid.
+    /**
+     * True if this represents a gas, false if this represents a liquid.
      * <p>
      * it is generally recommended that a gas will have much lower {@link #density}, {@link #thermalCapacity},
-     * {@link #viscosity}, and {@link #cohesion} than any liquid, however this is not technically required. */
+     * {@link #viscosity}, and {@link #cohesion} than any liquid, however this is not technically required.
+     */
     public final boolean gaseous;
 
-    /** How much this fluid resists attempts to move it around. For fluid blocks this should generally be the tick-rate
+    /**
+     * How much this fluid resists attempts to move it around. For fluid blocks this should generally be the tick-rate
      * of the block, divided by 5. (So for water this is 1, and for lava in the overworld it is 6).
      * <p>
      * It is always an error for any fluid to have a negative (or null) viscosity.
      * <p>
      * This isn't in any particular unit, and is instead relative to minecraft's water (which LBA declares as
-     * {@link FluidAmount#ONE}). */
+     * {@link FluidAmount#ONE}).
+     */
     public final FluidAmount viscosity;
 
-    /** Special-case property for fluids to have different {@link #viscosity} values in the nether.
+    /**
+     * Special-case property for fluids to have different {@link #viscosity} values in the nether.
      * <p>
      * The same rules apply to this field as to {@link #viscosity}.
      * <p>
      * (Doing this properly would require a full-on dynamic fluid properties system that could take into account the
      * temperature of the air around it, and would add a lot of complexity before this system has had any testing, so
-     * instead we'll just special-case the nether). */
+     * instead we'll just special-case the nether).
+     */
     public final FluidAmount netherViscosity;
 
-    /** How much this fluid will spread itself around. For fluid blocks this should generally be 8 divided by the block
+    /**
+     * How much this fluid will spread itself around. For fluid blocks this should generally be 8 divided by the block
      * spread distance. (For water this will be 1, and for lava this will be 2).
      * <p>
      * It is always an error for any fluid to have a negative (or null) cohesion.
      * <p>
      * This isn't in any particular unit, and is instead relative to minecraft's water (which LBA declares as
-     * {@link FluidAmount#ONE}). */
+     * {@link FluidAmount#ONE}).
+     */
     public final FluidAmount cohesion;
 
-    /** Special-case property for fluids to have different {@link #cohesion} values in the nether.
+    /**
+     * Special-case property for fluids to have different {@link #cohesion} values in the nether.
      * <p>
      * The same rules apply to this field as to {@link #cohesion}.
      * <p>
      * (Doing this properly would require a full-on dynamic fluid properties system that could take into account the
      * temperature of the air around it, and would add a lot of complexity before this system has had any testing, so
-     * instead we'll just special-case the nether). */
+     * instead we'll just special-case the nether).
+     */
     public final FluidAmount netherCohesion;
 
-    /** How dense this fluid is.
+    /**
+     * How dense this fluid is.
      * <p>
      * This isn't in any particular unit, and is instead relative to minecraft's water (which LBA declares as
-     * {@link FluidAmount#ONE}). */
+     * {@link FluidAmount#ONE}).
+     */
     public final FluidAmount density;
 
-    /** How much energy is required to make this fluid change it's temperature.
+    /**
+     * How much energy is required to make this fluid change it's temperature.
      * <p>
      * LBA doesn't declare any temperature scale (or constant temperature values for specific fluid keys) itself due to
      * the very different approaches that mods might wish to take to temperature.
      * <p>
      * This isn't in any particular unit, and is instead relative to minecraft's water (which LBA declares as
-     * {@link FluidAmount#ONE}). */
+     * {@link FluidAmount#ONE}).
+     */
     public final FluidAmount thermalCapacity;
 
     @Nullable
@@ -150,14 +179,16 @@ public abstract class FluidKey {
         /* package-private */ FluidAmount density;
         /* package-private */ FluidAmount thermalCapacity;
 
-        /** @deprecated As the flowing sprite ID is needed as well. */
+        /**
+         * @deprecated As the flowing sprite ID is needed as well.
+         */
         @Deprecated
         public FluidKeyBuilder(FluidRegistryEntry<?> registryEntry, Identifier spriteId, Text name) {
             this(registryEntry, spriteId, spriteId, name);
         }
 
         public FluidKeyBuilder(
-            FluidRegistryEntry<?> registryEntry, Identifier spriteId, Identifier flowingSpriteId, Text name
+                FluidRegistryEntry<?> registryEntry, Identifier spriteId, Identifier flowingSpriteId, Text name
         ) {
             this.entry = registryEntry;
             this.spriteId = spriteId;
@@ -165,9 +196,12 @@ public abstract class FluidKey {
             this.name = name;
         }
 
-        public FluidKeyBuilder() {}
+        public FluidKeyBuilder() {
+        }
 
-        /** Uses {@link #setIdEntry(Identifier)} */
+        /**
+         * Uses {@link #setIdEntry(Identifier)}
+         */
         public FluidKeyBuilder(Identifier id) {
             setIdEntry(id);
         }
@@ -202,8 +236,10 @@ public abstract class FluidKey {
             return this;
         }
 
-        /** @param id The floating identifier to use to identify this fluid - this will not be backed by a normal
-         *            {@link DefaultedRegistry}, instead these instances will only be . */
+        /**
+         * @param id The floating identifier to use to identify this fluid - this will not be backed by a normal
+         *           {@link DefaultedRegistry}, instead these instances will only be .
+         */
         public FluidKeyBuilder setIdEntry(Identifier id) {
             this.entry = new FluidFloatingEntry(id);
             return this;
@@ -230,7 +266,9 @@ public abstract class FluidKey {
             return this;
         }
 
-        /** Adds the given unit to the set of units used. */
+        /**
+         * Adds the given unit to the set of units used.
+         */
         public FluidKeyBuilder addUnit(FluidUnit unit) {
             this.unitSet.addUnit(unit);
             return this;
@@ -241,26 +279,32 @@ public abstract class FluidKey {
             return this;
         }
 
-        /** Sets the {@link FluidKey#gaseous} property to true.
-         * 
-         * @return this. */
+        /**
+         * Sets the {@link FluidKey#gaseous} property to true.
+         *
+         * @return this.
+         */
         public FluidKeyBuilder setGas() {
             gaseous = true;
             return this;
         }
 
-        /** Sets the {@link FluidKey#gaseous} property to false.
-         * 
-         * @return this. */
+        /**
+         * Sets the {@link FluidKey#gaseous} property to false.
+         *
+         * @return this.
+         */
         public FluidKeyBuilder setLiquid() {
             gaseous = false;
             return this;
         }
 
-        /** Sets the {@link FluidKey#viscosity} property to the given {@link FluidAmount}, or null to use the default
+        /**
+         * Sets the {@link FluidKey#viscosity} property to the given {@link FluidAmount}, or null to use the default
          * value.
-         * 
-         * @return this. */
+         *
+         * @return this.
+         */
         public FluidKeyBuilder setViscosity(FluidAmount to) {
             if (to != null && to.isNegative()) {
                 throw new IllegalArgumentException("Negative viscosity is not allowed! (" + to + ")");
@@ -269,10 +313,12 @@ public abstract class FluidKey {
             return this;
         }
 
-        /** Sets the {@link FluidKey#netherViscosity} property to the given {@link FluidAmount}, or null to use the
+        /**
+         * Sets the {@link FluidKey#netherViscosity} property to the given {@link FluidAmount}, or null to use the
          * default value.
-         * 
-         * @return this. */
+         *
+         * @return this.
+         */
         public FluidKeyBuilder setNetherViscosity(FluidAmount to) {
             if (to != null && to.isNegative()) {
                 throw new IllegalArgumentException("Negative nether viscosity is not allowed! (" + to + ")");
@@ -281,10 +327,12 @@ public abstract class FluidKey {
             return this;
         }
 
-        /** Sets the {@link FluidKey#cohesion} property to the given {@link FluidAmount}, or null to use the default
+        /**
+         * Sets the {@link FluidKey#cohesion} property to the given {@link FluidAmount}, or null to use the default
          * value.
-         * 
-         * @return this. */
+         *
+         * @return this.
+         */
         public FluidKeyBuilder setCohesion(FluidAmount to) {
             if (to != null && to.isNegative()) {
                 throw new IllegalArgumentException("Negative cohesion is not allowed! (" + to + ")");
@@ -293,10 +341,12 @@ public abstract class FluidKey {
             return this;
         }
 
-        /** Sets the {@link FluidKey#netherCohesion} property to the given {@link FluidAmount}, or null to use the
+        /**
+         * Sets the {@link FluidKey#netherCohesion} property to the given {@link FluidAmount}, or null to use the
          * default value.
-         * 
-         * @return this. */
+         *
+         * @return this.
+         */
         public FluidKeyBuilder setNetherCohesion(FluidAmount to) {
             if (to != null && to.isNegative()) {
                 throw new IllegalArgumentException("Negative nether cohesion is not allowed! (" + to + ")");
@@ -305,10 +355,12 @@ public abstract class FluidKey {
             return this;
         }
 
-        /** Sets the {@link FluidKey#density} property to the given {@link FluidAmount}, or null to use the default
+        /**
+         * Sets the {@link FluidKey#density} property to the given {@link FluidAmount}, or null to use the default
          * value.
-         * 
-         * @return this. */
+         *
+         * @return this.
+         */
         public FluidKeyBuilder setDensity(FluidAmount to) {
             if (to != null && to.isNegative()) {
                 throw new IllegalArgumentException("Negative density is not allowed! (" + to + ")");
@@ -317,11 +369,13 @@ public abstract class FluidKey {
             return this;
         }
 
-        /** Sets the {@link FluidKey#thermalCapacity} property to the given {@link FluidAmount}, or null to use the
+        /**
+         * Sets the {@link FluidKey#thermalCapacity} property to the given {@link FluidAmount}, or null to use the
          * default value. (If this is null then it will default to the same value as
          * {@link FluidKeyBuilder#setDensity(FluidAmount)}).
-         * 
-         * @return this. */
+         *
+         * @return this.
+         */
         public FluidKeyBuilder setThermalCapacity(FluidAmount to) {
             if (to != null && to.isNegative()) {
                 throw new IllegalArgumentException("Negative thermal capacity is not allowed! (" + to + ")");
@@ -334,7 +388,7 @@ public abstract class FluidKey {
     public FluidKey(FluidKeyBuilder builder) {
         if (builder.entry == null) {
             throw new NullPointerException(
-                "The builder is missing the 'entry' property! Did you forget to call either 'setRegistryEntry' or 'setIdEntry'?"
+                    "The builder is missing the 'entry' property! Did you forget to call either 'setRegistryEntry' or 'setIdEntry'?"
             );
         }
         if (builder.unit == null) {
@@ -356,7 +410,7 @@ public abstract class FluidKey {
             if (rawFluid instanceof EmptyFluid && rawFluid != Fluids.EMPTY) {
                 throw new IllegalArgumentException("Different empty fluid!");
             }
-            if (rawFluid instanceof BaseFluid && rawFluid != ((BaseFluid) rawFluid).getStill()) {
+            if (rawFluid instanceof FlowableFluid && rawFluid != ((FlowableFluid) rawFluid).getStill()) {
                 throw new IllegalArgumentException("Only the still version of fluids are allowed!");
             }
         }
@@ -437,16 +491,20 @@ public abstract class FluidKey {
         }
     }
 
-    /** The inverse of {@link #fromJson(JsonObject)}. */
+    /**
+     * The inverse of {@link #fromJson(JsonObject)}.
+     */
     public final JsonObject toJson() {
         JsonObject json = new JsonObject();
         toJson(json);
         return json;
     }
 
-    /** The inverse of {@link #fromJson(JsonObject)}.
-     * 
-     * @param json The {@link JsonObject} to modify. */
+    /**
+     * The inverse of {@link #fromJson(JsonObject)}.
+     *
+     * @param json The {@link JsonObject} to modify.
+     */
     public final void toJson(JsonObject json) {
         if (entry instanceof FluidFloatingEntry) {
             json.addProperty("floating_fluid", entry.getId().toString());
@@ -466,11 +524,12 @@ public abstract class FluidKey {
         assert this.equals(fromJson(json)) : json.toString();
     }
 
-    /* package-private */ static FluidKey fromJsonInternal(JsonObject json) throws JsonSyntaxException {
+    /* package-private */
+    static FluidKey fromJsonInternal(JsonObject json) throws JsonSyntaxException {
         if (json.has("floating_fluid")) {
             if (json.has("potion") || json.has("fluid")) {
                 throw new JsonSyntaxException(
-                    "Expected only one of 'fluid' or 'potion' or 'floating_fluid', but got multiple!"
+                        "Expected only one of 'fluid' or 'potion' or 'floating_fluid', but got multiple!"
                 );
             }
             JsonElement j = json.get("floating_fluid");
@@ -482,15 +541,15 @@ public abstract class FluidKey {
             FluidKey fluidKey = FluidKeys.get(entry);
             if (fluidKey == null) {
                 throw throwBadEntryException(
-                    "floating_fluid", "floating fluid identifier", "floating fluid identifiers", id.toString(),
-                    FluidKeys.getFloatingFluidIds()
+                        "floating_fluid", "floating fluid identifier", "floating fluid identifiers", id.toString(),
+                        FluidKeys.getFloatingFluidIds()
                 );
             }
             return fluidKey;
         } else if (json.has("potion")) {
             if (json.has("fluid")) {
                 throw new JsonSyntaxException(
-                    "Expected 'fluid' or 'potion' or 'floating_fluid', but got both! You should use one or the other, not both"
+                        "Expected 'fluid' or 'potion' or 'floating_fluid', but got both! You should use one or the other, not both"
                 );
             }
             return FluidKeys.get(getRegistryEntry(json.get("potion"), "potion", "potions", Registry.POTION));
@@ -501,12 +560,12 @@ public abstract class FluidKey {
             } else {
                 JsonObject obj = jFluid.getAsJsonObject();
                 MutableRegistry<?> reg
-                    = getRegistryEntry(obj.get("registry"), "registry", "registries", Registry.REGISTRIES);
+                        = getRegistryEntry(obj.get("registry"), "registry", "registries", Registry.REGISTRIES);
                 return fromRegistry(obj, reg);
             }
         } else {
             throw new JsonSyntaxException(
-                "Expected 'fluid' or 'potion' or 'floating_fluid', but got nothing! (" + json + ")"
+                    "Expected 'fluid' or 'potion' or 'floating_fluid', but got nothing! (" + json + ")"
             );
         }
     }
@@ -517,7 +576,7 @@ public abstract class FluidKey {
         FluidKey fluidKey = FluidKeys.get(fluidEntry);
         if (fluidKey == null) {
             throw throwBadEntryException(
-                "id", "ids", "ids", fluidEntry.getId().toString(), FluidKeys.getRegistryFluidIds()
+                    "id", "ids", "ids", fluidEntry.getId().toString(), FluidKeys.getRegistryFluidIds()
             );
         }
         return fluidKey;
@@ -546,7 +605,7 @@ public abstract class FluidKey {
     }
 
     private static JsonSyntaxException throwBadEntryException(
-        String key, String name, String keys, String found, Set<?> src
+            String key, String name, String keys, String found, Set<?> src
     ) {
 
         StringBuilder error = new StringBuilder();
@@ -597,7 +656,7 @@ public abstract class FluidKey {
         String str = json.getAsJsonPrimitive().getAsString();
         if (!str.contains(":")) {
             throw new JsonSyntaxException(
-                "Expected '" + key + "' to be a string with the " + key + " identifier, but got '" + str + "'!"
+                    "Expected '" + key + "' to be a string with the " + key + " identifier, but got '" + str + "'!"
             );
         }
         Identifier id = Identifier.tryParse(str);
@@ -607,10 +666,12 @@ public abstract class FluidKey {
         return id;
     }
 
-    /** Registers this {@link FluidKey} into the {@link FluidKeys} registry.
+    /**
+     * Registers this {@link FluidKey} into the {@link FluidKeys} registry.
      * <p>
      * You should only ever register a {@link FluidKey}'s {@link FluidEntry} into the registry once, so it may not be
-     * necessary to call this method. As such you should only call this on {@link FluidKey}s that you have created. */
+     * necessary to call this method. As such you should only call this on {@link FluidKey}s that you have created.
+     */
     public final void register() {
         if (entry instanceof FluidFloatingEntry) {
             FluidKeys.put((FluidFloatingEntry) entry, this);
@@ -666,7 +727,9 @@ public abstract class FluidKey {
         return vol;
     }
 
-    /** Called when this is pumped out from the world. */
+    /**
+     * Called when this is pumped out from the world.
+     */
     public FluidVolume fromWorld(WorldView world, BlockPos pos) {
         return withAmount(FluidAmount.BUCKET);
     }
@@ -689,8 +752,8 @@ public abstract class FluidKey {
             if (amountOld.getDeclaringClass() == FluidKey.class) {
                 if (amountNew.getDeclaringClass() == FluidKey.class) {
                     throw new IllegalStateException(
-                        "The " + clazz + " must override at least 1 of {'FluidKey.withAmount(int)'"
-                            + ", or 'FluidKey.withAmount(FluidAmount)' }"
+                            "The " + clazz + " must override at least 1 of {'FluidKey.withAmount(int)'"
+                                    + ", or 'FluidKey.withAmount(FluidAmount)' }"
                     );
                 }
             }

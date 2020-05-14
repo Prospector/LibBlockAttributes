@@ -34,7 +34,7 @@ public final class PlayerInvUtil {
     public static Reference<ItemStack> referenceGuiCursor(ServerPlayerEntity player) {
         return Reference.callable(player.inventory::getCursorStack, s -> {
             player.inventory.setCursorStack(s);
-            player.method_14241();
+            player.updateCursorStack();
         }, s -> true);
     }
 
